@@ -6,9 +6,7 @@ import java.net.BindException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -53,22 +51,26 @@ public class UdpServer {
                 // Blocks until a packet is received
                 socket.receive(packet);
                 final String receivedPacket = new String(packet.getData()).trim();
-
-                if (!receivedPacket.isEmpty() && isIncluded(receivedPacket)) {
-                    COUNTER.incrementAndGet();
-                    String message = receivedPacket;
-                    if (addTimestamp) {
-                        final String timestamp = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
-                        message = String.format("[%s][%s] %s", timestamp, COUNTER.get(), message);
-                    }
-                   appendText(message);
-                }
+                Optional.of(receivedPacket.split("\n"))
+                        .map(l -> Arrays.asList(l))
+                        .ifPresent(lines -> {
+                            lines.stream()
+                                    .filter(line -> !line.isEmpty() && isIncluded(line))
+                                    .map(line -> addTimestamp ?
+                                            String.format("[%s][%s] %s",
+                                                    new SimpleDateFormat("HH:mm:ss.SSS").format(new Date()), COUNTER.get(), line) :
+                                            line)
+                                    .forEach(line -> {
+                                        COUNTER.incrementAndGet();
+                                        appendText(line);
+                            });
+                        });
             }
         } catch (BindException bindException) {
-            appendText("Failed to start the UDP Server due to '" + bindException.getMessage() + "'\n");
+            appendText("Failed to start the UDP Server due to '".concat(bindException.getMessage()).concat("'\n"));
             appendText("Please close all running application using port 8125 and restart this application");
         } catch (Exception e) {
-            appendText("Something wrong happen: Error message: '" + e.getMessage() + "'");
+            appendText("Something wrong happen: Error message: '".concat(e.getMessage()).concat("'"));
         }
     }
 
