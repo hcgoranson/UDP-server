@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 public class UdpServer {
     private static final List<String> INCLUDE_LIST = new ArrayList<>();
 
-    private ExecutorService executor;
+    private final ExecutorService executor;
     private final Consumer<String> consumer;
     private final AtomicInteger COUNTER = new AtomicInteger();
     private final static int PORT = 8125;
@@ -52,7 +52,7 @@ public class UdpServer {
                 socket.receive(packet);
                 final String receivedPacket = new String(packet.getData()).trim();
                 Optional.of(receivedPacket.split("\n"))
-                        .map(l -> Arrays.asList(l))
+                        .map(Arrays::asList)
                         .ifPresent(lines -> {
                             lines.stream()
                                     .filter(line -> !line.isEmpty() && isIncluded(line))
@@ -84,9 +84,6 @@ public class UdpServer {
             return true;
         }
 
-        return INCLUDE_LIST.stream()
-                .filter(included -> received.contains(included) || "*".equals(included))
-                .findAny()
-                .isPresent();
+        return INCLUDE_LIST.stream().anyMatch(included -> received.contains(included) || "*".equals(included));
     }
 }
